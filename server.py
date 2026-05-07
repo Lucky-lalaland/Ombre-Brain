@@ -501,7 +501,7 @@ async def breath(
     domain: str = "",
     valence: float = -1,
     arousal: float = -1,
-    max_results: int = 20,
+    max_results: int = 5,
     importance_min: int = -1,
     skip_pinned: bool = True,
 ) -> str:
