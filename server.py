@@ -1303,6 +1303,13 @@ async def api_buckets(request):
         result = []
         for b in all_buckets:
             meta = b.get("metadata", {})
+            # --- Ensure datetime fields are strings for JSON serialization ---
+            created_val = meta.get("created", "")
+            last_active_val = meta.get("last_active", "")
+            if hasattr(created_val, "isoformat"):
+                created_val = created_val.isoformat()
+            if hasattr(last_active_val, "isoformat"):
+                last_active_val = last_active_val.isoformat()
             result.append({
                 "id": b["id"],
                 "name": meta.get("name", b["id"]),
@@ -1316,8 +1323,8 @@ async def api_buckets(request):
                 "resolved": meta.get("resolved", False),
                 "pinned": meta.get("pinned", False),
                 "digested": meta.get("digested", False),
-                "created": meta.get("created", ""),
-                "last_active": meta.get("last_active", ""),
+                "created": created_val,
+                "last_active": last_active_val,
                 "activation_count": meta.get("activation_count", 1),
                 "score": decay_engine.calculate_score(meta),
                 "content_preview": strip_wikilinks(b.get("content", ""))[:200],
