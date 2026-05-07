@@ -553,21 +553,24 @@ async def breath(
             logger.error(f"Failed to list buckets for surfacing / 浮现列桶失败: {e}")
             return "记忆系统暂时无法访问。"
 
-        # --- Pinned/protected buckets: always surface as core principles ---
-        # --- 钉选桶：作为核心准则，始终浮现 ---
+        # --- Pinned/protected buckets: surface as core principles (unless skipped) ---
+        # --- 钉选桶：作为核心准则浮现（skip_pinned=True 时跳过以省 token）---
         pinned_buckets = [
             b for b in all_buckets
             if b["metadata"].get("pinned") or b["metadata"].get("protected")
         ]
         pinned_results = []
-        for b in pinned_buckets:
-            try:
-                clean_meta = {k: v for k, v in b["metadata"].items() if k != "tags"}
-                summary = await dehydrator.dehydrate(strip_wikilinks(b["content"]), clean_meta)
-                pinned_results.append(f"📌 [核心准则] [bucket_id:{b['id']}] {summary}")
-            except Exception as e:
-                logger.warning(f"Failed to dehydrate pinned bucket / 钉选桶脱水失败: {e}")
-                continue
+        if not skip_pinned:
+            for b in pinned_buckets:
+                try:
+                    clean_meta = {k: v for k, v in b["metadata"].items() if k != "tags"}
+                    summary = await dehydrator.dehydrate(strip_wikilinks(b["content"]), clean_meta)
+                    pinned_results.append(f"📌 [核心准则] [bucket_id:{b['id']}] {summary}")
+                except Exception as e:
+                    logger.warning(f"Failed to dehydrate pinned bucket / 钉选桶脱水失败: {e}")
+                    continue
+        else:
+            logger.info(f"Breath: skip_pinned=True, skipping {len(pinned_buckets)} pinned buckets")
 
         # --- Unresolved buckets: surface top N by weight ---
         # --- 未解决桶：按权重浮现前 N 条 ---
