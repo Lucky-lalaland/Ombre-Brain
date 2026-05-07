@@ -1072,8 +1072,8 @@ async def trace(
 # 工具 5：pulse — 脉搏，系统状态 + 记忆列表
 # =============================================================
 @mcp.tool()
-async def pulse(include_archive: bool = False) -> str:
-    """系统状态+记忆桶列表。include_archive=True含归档。"""
+async def pulse(include_archive: bool = False, compact: bool = False) -> str:
+    """系统状态+记忆桶列表。include_archive=True含归档。compact=True只显示统计概况和按主题分组的桶名(省token)。"""
     try:
         stats = await bucket_mgr.get_stats()
     except Exception as e:
@@ -1096,6 +1096,31 @@ async def pulse(include_archive: bool = False) -> str:
 
     if not buckets:
         return status + "\n记忆库为空。"
+
+    # --- Compact mode: group by theme, show names only ---
+    if compact:
+        from collections import defaultdict
+        groups = defaultdict(list)
+        for b in buckets:
+            meta = b.get("metadata", {})
+            if meta.get("pinned") or meta.get("protected"):
+                icon = "📌"
+            elif meta.get("type") == "feel":
+                icon = "🫧"
+            elif meta.get("type") == "archived":
+                icon = "🗄️"
+            elif meta.get("resolved", False):
+                icon = "✅"
+            else:
+                icon = "💭"
+            domains = meta.get("domain", ["未分类"])
+            primary_domain = domains[0] if domains else "未分类"
+            name = meta.get("name", b["id"])
+            groups[primary_domain].append(f"{icon}{name}")
+        lines = []
+        for domain_name, items in sorted(groups.items(), key=lambda x: -len(x[1])):
+            lines.append(f"【{domain_name}】×{len(items)}: {', '.join(items)}")
+        return status + "\n=== 记忆概览 ===\n" + "\n".join(lines)
 
     lines = []
     for b in buckets:
