@@ -1346,9 +1346,14 @@ async def api_bucket_detail(request):
     if not bucket:
         return JSONResponse({"error": "not found"}, status_code=404)
     meta = bucket.get("metadata", {})
+    # --- Ensure datetime fields are serializable ---
+    safe_meta = dict(meta)
+    for key in ("created", "last_active"):
+        if hasattr(safe_meta.get(key), "isoformat"):
+            safe_meta[key] = safe_meta[key].isoformat()
     return JSONResponse({
         "id": bucket["id"],
-        "metadata": meta,
+        "metadata": safe_meta,
         "content": strip_wikilinks(bucket.get("content", "")),
         "score": decay_engine.calculate_score(meta),
     })
